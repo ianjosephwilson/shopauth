@@ -977,11 +977,9 @@ class ShopAuthService:
             }
             # Convert access scopes into a list.
             access_scopes = [
-                sorted(
-                    scope.strip()
-                    for scope in json_payload["scope"].split(",")
-                    if scope.strip()
-                )
+                scope.strip()
+                for scope in json_payload["scope"].split(",")
+                if scope.strip()
             ]
             return (
                 json_payload["access_token"],
