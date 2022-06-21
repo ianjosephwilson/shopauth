@@ -39,7 +39,7 @@ from .interfaces import (
     ISessionSerializer,
     IAppInstalledHandler,
 )
-
+from .scopes import scopes_have_changed
 
 logger = logging.getLogger(__name__)
 
