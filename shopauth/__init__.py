@@ -322,9 +322,11 @@ class ShopAuthService:
         install_session = self.storage_shim.load_session(
             self.get_install_session_id(shop_name)
         )
-        if not install_session or sorted(install_session.access_scopes) != sorted(
-            self.config.access_scopes
-        ):
+        if not install_session:
+            logger.info('No install session found, app is not installed.')
+            return None, self.redirect_to_auth()
+        elif scopes_have_changed(installed_scopes=install_session.access_scopes, expected_scopes=self.config.access_scopes):
+            logger.info('Scopes have changed, redirect to re-install/update app.')
             return None, self.redirect_to_auth()
         return install_session, None
 
@@ -499,7 +501,7 @@ class ShopAuthService:
 
         install_session, error_response = self.check_app_installed()
         if error_response:
-            logger.error("App is not installed")
+            logger.info("App is not installed")
             return None, error_response
 
         params = self.web_shim.get_params(["hmac", "timestamp", "shop", "host"])
@@ -509,7 +511,7 @@ class ShopAuthService:
                 logger.error("HMAC BAD, is not valid.")
                 return None, self.redirect_to_auth()
             else:
-                logger.error("HMAC OK, continue with home page")
+                logger.info("HMAC OK, continue with home page")
                 return install_session, None
         else:
             if (
@@ -518,10 +520,10 @@ class ShopAuthService:
                 )
                 == "1"
             ):
-                logger.error("COOKIE OK, continue with home page")
+                logger.info("COOKIE OK, continue with home page")
                 return install_session, None
             else:
-                logger.error("COOKIE BAD, isn't 1")
+                logger.info("COOKIE BAD, isn't 1")
                 return None, self.redirect_to_auth()
 
     def check_embedded_auth_session(self):
