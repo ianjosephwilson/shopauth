@@ -323,10 +323,13 @@ class ShopAuthService:
             self.get_install_session_id(shop_name)
         )
         if not install_session:
-            logger.info('No install session found, app is not installed.')
+            logger.info("No install session found, app is not installed.")
             return None, self.redirect_to_auth()
-        elif scopes_have_changed(installed_scopes=install_session.access_scopes, expected_scopes=self.config.access_scopes):
-            logger.info('Scopes have changed, redirect to re-install/update app.')
+        elif scopes_have_changed(
+            installed_scopes=install_session.access_scopes,
+            expected_scopes=self.config.access_scopes,
+        ):
+            logger.info("Scopes have changed, redirect to re-install/update app.")
             return None, self.redirect_to_auth()
         return install_session, None
 
