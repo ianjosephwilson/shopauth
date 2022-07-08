@@ -20,7 +20,7 @@ pyramid_deps = ["pyramid"]
 
 setup(
     name="shopauth",
-    version="0.1a",
+    version="0.2a",
     description="Unofficial auth library for shopify apps.",
     author="Ian Wilson",
     author_email="ian@laspilitas.com",
