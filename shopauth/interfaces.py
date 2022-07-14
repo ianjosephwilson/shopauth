@@ -15,3 +15,15 @@ class ISessionSerializer(Interface):
 
 class IAppInstalledHandler(Interface):
     pass
+
+
+class IWebhookAPI(Interface):
+    pass
+
+
+class IWebhookEndpoint(Interface):
+    pass
+
+
+class IWebhookHandlerRegistry(Interface):
+    pass
