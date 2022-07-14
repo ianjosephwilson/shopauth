@@ -40,6 +40,8 @@ from .interfaces import (
     IAppInstalledHandler,
 )
 from .scopes import scopes_have_changed
+from .util import build_shop_host, extract_shop_name
+
 
 logger = logging.getLogger(__name__)
 
@@ -318,7 +320,7 @@ class ShopAuthService:
         shop_host = self.web_shim.get_param("shop", None)
         if not shop_host:
             return None, None
-        shop_name = self.extract_shop_name(shop_host)
+        shop_name = extract_shop_name(shop_host)
         install_session = self.storage_shim.load_session(
             self.get_install_session_id(shop_name)
         )
@@ -549,7 +551,7 @@ class ShopAuthService:
             except ValueError as e:
                 return None, self.web_shim.response_bad_request(f"{e}")
             shop_host = payload.dest[len("https://") :]
-            shop_name = self.extract_shop_name(shop_host)
+            shop_name = extract_shop_name(shop_host)
             if self.config.need_online_access_token:
                 user_id = payload.sub
                 online_session = self.storage_shim.load_session(
@@ -596,7 +598,7 @@ class ShopAuthService:
 
         shop_host = self.web_shim.get_param("shop")
 
-        shop_name = self.extract_shop_name(shop_host)
+        shop_name = extract_shop_name(shop_host)
         if not shop_name:
             return self.web_shim.response_bad_request("Shop is not properly formatted")
 
@@ -670,7 +672,7 @@ class ShopAuthService:
             ).items()
         )
         query_string = urlencode(query)
-        shop_host = self.build_shop_host(shop_name)
+        shop_host = build_shop_host(shop_name)
         return self.web_shim.redirect_302_url(
             f"https://{shop_host}/admin/oauth/authorize?{query_string}"
         )
@@ -738,7 +740,7 @@ class ShopAuthService:
         self.set_oauth_cookie("", max_age=ZERO_SECONDS)
 
         shop_host = self.web_shim.get_param("shop")
-        shop_name = self.extract_shop_name(shop_host)
+        shop_name = extract_shop_name(shop_host)
 
         #
         # Store granted scopes and access token in requested session: online or offline.
@@ -877,15 +879,6 @@ class ShopAuthService:
     """
     Agnostic utils
     """
-
-    def build_shop_host(self, shop_name, myshopify_domain="myshopify.com"):
-        return f"{shop_name}.{myshopify_domain}"
-
-    def extract_shop_name(self, shop_host, myshopify_domain="myshopify.com"):
-        suffix = "." + myshopify_domain
-        if shop_host.endswith(suffix):
-            return shop_host[: -len(suffix)]
-        return None
 
     def get_toplevel_redirect_html_content(
         self, api_key, encoded_shop_host, auth_url, auth_toplevel_url
