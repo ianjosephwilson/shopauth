@@ -47,13 +47,19 @@ class SqlalchemyStorageShim:
         return session_dict
 
     def remove_session_by_id(self, session_id):
-        return self.db.execute(self.table.delete().where(self.table.c.id == session_id))
+        res = self.db.execute(self.table.delete().where(self.table.c.id == session_id))
+        if self.mark_changed:
+            self.mark_changed(self.db)
+        return res
 
     def remove_all_shop_sessions(self, shop_name):
         """Remove all sessions for this shop.
 
         This is intended to be used when shop uninstalls application.
         """
-        return self.db.execute(
+        res = self.db.execute(
             self.table.delete().where(self.table.c.shop_name == shop_name)
         )
+        if self.mark_changed:
+            self.mark_changed(self.db)
+        return res
