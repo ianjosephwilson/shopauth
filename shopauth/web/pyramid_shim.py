@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 
 from pyramid.request import Request
-from pyramid.httpexceptions import HTTPFound, HTTPBadRequest, HTTPForbidden
+from pyramid.httpexceptions import HTTPFound, HTTPBadRequest, HTTPForbidden, HTTPUnauthorized
 import zope.interface
 
 from ..interfaces import IWebShim
@@ -12,7 +12,6 @@ class PyramidWebShimConfig:
     auth_route: str
     auth_callback_route: str
     auth_toplevel_route: str
-    webhook_uninstall_route: str
     home_route: str
     # This is used to sign cookies.
     cookie_secret: str
@@ -86,8 +85,8 @@ class PyramidWebShim:
     def get_auth_toplevel_url(self, get_params=None):
         return self._route_url(self.config.auth_toplevel_route, get_params)
 
-    def get_webhook_uninstall_url(self, get_params=None):
-        return self._route_url(self.config.webhook_uninstall_route, get_params)
+    def response_401(self):
+        return HTTPUnauthorized()
 
     def response_403(self):
         return HTTPForbidden()
@@ -124,3 +123,9 @@ class PyramidWebShim:
 
     def response_bad_request(self, message):
         return HTTPBadRequest(message)
+
+    def get_request_body(self):
+        return self.request.body
+
+    def get_request_json_body(self):
+        return self.request.json_body
