@@ -932,30 +932,34 @@ class ShopAuthService:
         Maybe just make a web shim method just for this call ?
         """
         new_param_items = []
-        last_group = None
-        last_group_value = None
+        groups_by_key = {}
         # Group keys ending in [] into a list.
-        for (k, v) in sorted(param_items):
+        for (k, v) in param_items:
             if k.endswith('[]'):
-                if last_group == k:
-                    # The last group is already added by ref to the new param
-                    # items so we can just append to it.
-                    last_group_value.append(v)
-                else:
-                    last_group = k
-                    last_group_value = [v]
-                    new_param_items.append((k, last_group_value))
+                # Only create and append the list once.
+                if k not in groups_by_key:
+                    groups_by_key[k] = []
+                    new_param_items.append((k, groups_by_key[k]))
+                # But keep adding values as they arrive.
+                groups_by_key[k].append(v)
             else:
                 new_param_items.append((k, v))
         return new_param_items
+
+    # These must be in a specific order to not escape the escapes.
+    hmac_key_escapes = [("%", "%25"), ("=", "%3D")]
+    hmac_value_escapes = [("%", "%25")]
+    hmac_key_value_escapes = [("&", "%26")]
 
     def encode_params_for_hmac(self, param_items):
         """
         Encode params with special shopify rules.
         """
+
         params_to_encode = []
         # Group array params, ie. [("k[]", 1), ("k[]", 2)] into [("k[]", [1,2])].
         grouped_param_items = self.group_array_params(param_items)
+
         for (k, v) in sorted(grouped_param_items):
             if k == "hmac":
                 continue
@@ -963,11 +967,21 @@ class ShopAuthService:
                 # ("k[]", [1,2]) is converted to ("k", '["1", "2"]')
                 k = k[:-2]
                 v = "[{0}]".format(", ".join(['"{}"'.format(v_item) for v_item in v]))
-            params_to_encode.append((k, v))
-        # Do not encode ", [ or ] to match the shopify alg, this might still
-        # not be accurate because maybe other params are encoded with more
-        # strict rules.
-        return urlencode(params_to_encode, safe=':/"[]')
+
+            # This should never happen but we are just matching the "official" alg.
+            k = str(k)
+            # This also should never happen at least via a GET param because
+            # it will always be a string.
+            v = str(v)
+            for char, escape_with in self.hmac_key_escapes:
+                k = k.replace(char, escape_with)
+            for char, escape_with in self.hmac_value_escapes:
+                v = v.replace(char, escape_with)
+            pair = "{0}={1}".format(k, v)
+            for char, escape_with in self.hmac_key_value_escapes:
+                pair = pair.replace(char, escape_with)
+            params_to_encode.append(pair)
+        return '&'.join(sorted(params_to_encode))
 
     def request_access_token(self, shop_host, grant_code, api_key, api_secret):
         """
