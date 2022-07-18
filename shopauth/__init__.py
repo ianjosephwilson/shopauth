@@ -519,17 +519,15 @@ class ShopAuthService:
                 logger.info("HMAC OK, continue with home page")
                 return install_session, None
         else:
-            if (
-                self.web_shim.get_cookie(
-                    self.config.home_redirect_cookie_name, signed=True
-                )
-                == "1"
-            ):
-                logger.info("COOKIE OK, continue with home page")
-                return install_session, None
-            else:
-                logger.info("COOKIE BAD, isn't 1")
+            # This should only happen on the home page load between oauth and embedding.
+            session_id = self.web_shim.get_cookie(self.config.auth_cookie_name, signed=True)
+            if not session_id:
                 return None, self.redirect_to_auth()
+            auth_session = self.storage_shim.load_session(session_id)
+            if not auth_session or self.is_session_expired(auth_session) or not self.test_access(auth_session):
+                return None, self.redirect_to_auth()
+            else:
+                return auth_session, None
 
     def check_embedded_auth_session(self):
         """
@@ -776,15 +774,10 @@ class ShopAuthService:
                 #  must have all the new scopes to re-install the app otherwise it fails.
                 self.on_app_installed(online_session, shop_name, access_scopes)
 
-            if self.config.embedded:
-                # Allow our page to load before going into the iframe.
-                self.set_home_redirect_cookie("1", max_age=MINUTE_IN_SECONDS)
-            else:
-                # Always set online as the auth cookie when not in embedded.
-                self.set_auth_cookie(
-                    online_session.id,
-                    max_age=online_session.online_access_info.expires_in,
-                )
+            self.set_auth_cookie(
+                online_session.id,
+                max_age=online_session.online_access_info.expires_in,
+            )
             return self.web_shim.redirect_302_url(
                 self.web_shim.get_home_url(
                     get_params=self.web_shim.get_params(["shop", "host"])
@@ -807,11 +800,7 @@ class ShopAuthService:
                 #
                 return self.redirect_to_authorize(shop_name, ONLINE_ACCESS_MODE)
             else:
-                if self.config.embedded:
-                    # Allow our page to load before going into the iframe.
-                    self.set_home_redirect_cookie("1", max_age=MINUTE_IN_SECONDS)
-                else:
-                    self.set_auth_cookie(offline_session.id, max_age=None)
+                self.set_auth_cookie(offline_session.id, max_age=None)
 
                 return self.web_shim.redirect_302_url(
                     self.web_shim.get_home_url(
