@@ -66,18 +66,21 @@ class PyramidWebShim:
                 else value
             )
 
-    def _route_url(self, route_name, get_params, **kwargs):
+    def _route_url(self, route_name, get_params, path_only=False, **kwargs):
         if get_params:
             # @TODO If _query is a string this is going to fail.
             kwargs.setdefault("_query", {}).update(get_params)
-        return self.request.route_url(route_name, **kwargs)
+        if path_only:
+            return self.request.route_path(route_name, **kwargs)
+        else:
+            return self.request.route_url(route_name, **kwargs)
 
-    def get_home_url(self, get_params=None):
-        return self._route_url(self.config.home_route, get_params)
+    def get_home_url(self, get_params=None, path_only=False):
+        return self._route_url(self.config.home_route, get_params, path_only=path_only)
 
-    def get_auth_url(self, get_params=None):
+    def get_auth_url(self, get_params=None, path_only=False):
         # Use shop as GET param because that is what shopify passes.
-        return self._route_url(self.config.auth_route, get_params)
+        return self._route_url(self.config.auth_route, get_params, path_only=path_only)
 
     def get_auth_callback_url(self, get_params=None):
         return self._route_url(self.config.auth_callback_route, get_params)
@@ -85,11 +88,15 @@ class PyramidWebShim:
     def get_auth_toplevel_url(self, get_params=None):
         return self._route_url(self.config.auth_toplevel_route, get_params)
 
-    def response_401(self):
-        return HTTPUnauthorized()
+    def response_401(self, headers=None, **kwargs):
+        if headers:
+            kwargs['headers'] = headers
+        return HTTPUnauthorized(**kwargs)
 
-    def response_403(self):
-        return HTTPForbidden()
+    def response_403(self, headers=None, **kwargs):
+        if headers:
+            kwargs['headers'] = headers
+        return HTTPForbidden(**kwargs)
 
     def redirect_302_url(self, url, with_headers=True):
         """Raise or return a redirect."""

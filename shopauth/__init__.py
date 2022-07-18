@@ -567,16 +567,17 @@ class ShopAuthService:
                 return offline_session, None
 
     def redirect_with_header(self):
-        self.web_shim.set_header("X-Shopify-API-Request-Failure-Reauthorize", "1")
-        # @TODO: Is this the right url ?  Does anyone really know?
-        self.web_shim.set_header(
-            "X-Shopify-API-Request-Failure-Reauthorize-Url",
-            self.web_shim.get_auth_url(
-                get_params=self.web_shim.get_params(["shop", "host"])
+        headers = {
+            "X-Shopify-API-Request-Failure-Reauthorize": "1",
+            # @NOTE: This only works if you are passing the shop and host back
+            # to the API.  Otherwise you have to know which auth url to redirect
+            # to in your app.
+            "X-Shopify-API-Request-Failure-Reauthorize-Url": self.web_shim.get_auth_url(
+                get_params=self.web_shim.get_params(["shop", "host"]),
             ),
-        )
-
-        return self.web_shim.response_403()
+            'Content-Type': 'application/json'
+        }
+        return self.web_shim.response_403(headers=headers, json_body={"error": "Shopify api request failure"})
 
     def begin_auth(self):
         """
