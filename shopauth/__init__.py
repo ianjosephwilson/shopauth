@@ -27,6 +27,7 @@ import hmac
 import hashlib
 import time
 from urllib.parse import urlencode
+from base64 import b64decode
 
 import jwt
 import requests
@@ -282,7 +283,7 @@ class ShopAuthService:
     toplevel_redirect_html_content_fmt: str = """<!DOCTYPE html>
 <html>
   <head>
-    <script src="https://unpkg.com/@shopify/app-bridge@2"></script>
+    <script src="https://unpkg.com/@shopify/app-bridge@3"></script>
     <script>
       document.addEventListener('DOMContentLoaded', function () {
         var config = %s;
@@ -779,11 +780,11 @@ class ShopAuthService:
                 online_session.id,
                 max_age=online_session.online_access_info.expires_in,
             )
-            return self.web_shim.redirect_302_url(
-                self.web_shim.get_home_url(
-                    get_params=self.web_shim.get_params(["shop", "host"])
-                )
-            )
+            if self.config.embedded:
+                app_url = self.get_embedded_app_url(self.config.api_key, self.web_shim.get_param("host"))
+            else:
+                app_url = self.web_shim.get_home_url(get_params=self.web_shim.get_params(["shop", "host"]))
+            return self.web_shim.redirect_302_url(app_url)
         else:
             offline_session = self.create_offline_session(
                 shop_name, access_token, access_scopes
@@ -803,11 +804,11 @@ class ShopAuthService:
             else:
                 self.set_auth_cookie(offline_session.id, max_age=None)
 
-                return self.web_shim.redirect_302_url(
-                    self.web_shim.get_home_url(
-                        get_params=self.web_shim.get_params(["shop", "host"])
-                    )
-                )
+                if self.config.embedded:
+                    app_url = self.get_embedded_app_url(self.config.api_key, self.web_shim.get_param("host"))
+                else:
+                    app_url = self.web_shim.get_home_url(get_params=self.web_shim.get_params(["shop", "host"]))
+                return self.web_shim.redirect_302_url(app_url)
 
     def set_auth_cookie(self, session_id, max_age=None):
         """Set the cookie used for authentication in standalone apps."""
@@ -1077,3 +1078,12 @@ class ShopAuthService:
     def get_nonce(self, charset=string.ascii_lowercase + string.digits, length=15):
         """Get a random system of `length` characters from given `charset`."""
         return "".join(random.SystemRandom().choice(charset) for _ in range(length))
+
+    def get_embedded_app_url(self, api_key, encoded_host, path='/'):
+        # pad out '=' at end of string so that it is multiple of 4
+        padded_encoded_host = encoded_host + '=' * (4 - len(encoded_host) % 4)
+        # decode base64 into bytes
+        decoded_host_bytes = b64decode(padded_encoded_host)
+        # decode back into unicode string
+        decoded_host = decoded_host_bytes.decode('utf-8')
+        return f"https://{decoded_host}/apps/{api_key}{path}"
