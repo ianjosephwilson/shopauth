@@ -17,7 +17,7 @@ If our access scopes change we will need the owner to login again and we will
 have to update the existing offline session (and access token).
 """
 import logging
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, asdict, field, fields
 import re
 import json
 import random
@@ -916,8 +916,8 @@ class ShopAuthService:
     def clean_payload(self, payload_dict):
         """ Only allow keys in the spec'ed dataclass. """
         cleaned = {}
-        allowed_keys = set(f.name in for f in fields(ShopifyJWTPayload))
-        return dict([(k, v) for (k, v) in payload_dict if k in allowed_keys])
+        allowed_keys = set([f.name for f in fields(ShopifyJWTPayload)])
+        return dict([(k, v) for (k, v) in payload_dict.items() if k in allowed_keys])
 
     def check_for_replay(self, callback_timestamp, allow_seconds=DAY_IN_SECONDS):
         return callback_timestamp >= time.time() - allow_seconds
