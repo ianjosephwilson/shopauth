@@ -334,6 +334,7 @@ class ShopAuthService:
         ):
             logger.info("Scopes have changed, redirect to re-install/update app.")
             return None, self.redirect_to_auth()
+
         return install_session, None
 
     def set_app_headers(self):
@@ -499,8 +500,6 @@ class ShopAuthService:
     def verify_embedded_page_access(self):
         """
         This should be used for loading pages embedded in shopify AND our first home page /skeleton load.
-
-        This does not return a session.
         """
         if not self.config.embedded:
             raise AssertionError("Only use this for embedded applications.")
@@ -681,6 +680,7 @@ class ShopAuthService:
         # This assumes nonce was already checked.
 
         if not self.check_for_replay(int(self.web_shim.get_param("timestamp", 0))):
+            logger.error("Likely replay attack, bad request")
             return self.web_shim.response_bad_request(
                 "Likely replay attack, bad request"
             )
@@ -690,6 +690,7 @@ class ShopAuthService:
             ).encode("utf8"),
             self.web_shim.get_param("hmac").encode("utf8"),
         ):
+            logger.error("hmac sig does not match")
             return self.web_shim.response_bad_request(
                 "HMAC signature does not match, bad request."
             )
@@ -908,7 +909,15 @@ class ShopAuthService:
             )
         except jwt.InvalidSignatureError:
             raise ValueError("JWT decoding failed.")
+        # I guess clean out garbage from shopify, re-occuring sig arg.
+        payload_dict = self.clean_payload(payload_dict)
         return ShopifyJWTPayload(**payload_dict)
+
+    def clean_payload(self, payload_dict):
+        """ Only allow keys in the spec'ed dataclass. """
+        cleaned = {}
+        allowed_keys = set(f.name in for f in fields(ShopifyJWTPayload))
+        return dict([(k, v) for (k, v) in payload_dict if k in allowed_keys])
 
     def check_for_replay(self, callback_timestamp, allow_seconds=DAY_IN_SECONDS):
         return callback_timestamp >= time.time() - allow_seconds
