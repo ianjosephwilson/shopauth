@@ -915,7 +915,6 @@ class ShopAuthService:
 
     def clean_payload(self, payload_dict):
         """ Only allow keys in the spec'ed dataclass. """
-        cleaned = {}
         allowed_keys = set([f.name for f in fields(ShopifyJWTPayload)])
         return dict([(k, v) for (k, v) in payload_dict.items() if k in allowed_keys])
 
