@@ -520,11 +520,17 @@ class ShopAuthService:
                 return install_session, None
         else:
             # This should only happen on the home page load between oauth and embedding.
-            session_id = self.web_shim.get_cookie(self.config.auth_cookie_name, signed=True)
+            session_id = self.web_shim.get_cookie(
+                self.config.auth_cookie_name, signed=True
+            )
             if not session_id:
                 return None, self.redirect_to_auth()
             auth_session = self.storage_shim.load_session(session_id)
-            if not auth_session or self.is_session_expired(auth_session) or not self.test_access(auth_session):
+            if (
+                not auth_session
+                or self.is_session_expired(auth_session)
+                or not self.test_access(auth_session)
+            ):
                 return None, self.redirect_to_auth()
             else:
                 return auth_session, None
@@ -575,9 +581,11 @@ class ShopAuthService:
             "X-Shopify-API-Request-Failure-Reauthorize-Url": self.web_shim.get_auth_url(
                 get_params=self.web_shim.get_params(["shop", "host"]),
             ),
-            'Content-Type': 'application/json'
+            "Content-Type": "application/json",
         }
-        return self.web_shim.response_403(headers=headers, json_body={"error": "Shopify api request failure"})
+        return self.web_shim.response_403(
+            headers=headers, json_body={"error": "Shopify api request failure"}
+        )
 
     def begin_auth(self):
         """
@@ -782,9 +790,13 @@ class ShopAuthService:
                 max_age=online_session.online_access_info.expires_in,
             )
             if self.config.embedded:
-                app_url = self.get_embedded_app_url(self.config.api_key, self.web_shim.get_param("host"))
+                app_url = self.get_embedded_app_url(
+                    self.config.api_key, self.web_shim.get_param("host")
+                )
             else:
-                app_url = self.web_shim.get_home_url(get_params=self.web_shim.get_params(["shop", "host"]))
+                app_url = self.web_shim.get_home_url(
+                    get_params=self.web_shim.get_params(["shop", "host"])
+                )
             return self.web_shim.redirect_302_url(app_url)
         else:
             offline_session = self.create_offline_session(
@@ -806,9 +818,13 @@ class ShopAuthService:
                 self.set_auth_cookie(offline_session.id, max_age=None)
 
                 if self.config.embedded:
-                    app_url = self.get_embedded_app_url(self.config.api_key, self.web_shim.get_param("host"))
+                    app_url = self.get_embedded_app_url(
+                        self.config.api_key, self.web_shim.get_param("host")
+                    )
                 else:
-                    app_url = self.web_shim.get_home_url(get_params=self.web_shim.get_params(["shop", "host"]))
+                    app_url = self.web_shim.get_home_url(
+                        get_params=self.web_shim.get_params(["shop", "host"])
+                    )
                 return self.web_shim.redirect_302_url(app_url)
 
     def set_auth_cookie(self, session_id, max_age=None):
@@ -914,7 +930,7 @@ class ShopAuthService:
         return ShopifyJWTPayload(**payload_dict)
 
     def clean_payload(self, payload_dict):
-        """ Only allow keys in the spec'ed dataclass. """
+        """Only allow keys in the spec'ed dataclass."""
         allowed_keys = set([f.name for f in fields(ShopifyJWTPayload)])
         return dict([(k, v) for (k, v) in payload_dict.items() if k in allowed_keys])
 
@@ -944,7 +960,7 @@ class ShopAuthService:
         groups_by_key = {}
         # Group keys ending in [] into a list.
         for (k, v) in param_items:
-            if k.endswith('[]'):
+            if k.endswith("[]"):
                 # Only create and append the list once.
                 if k not in groups_by_key:
                     groups_by_key[k] = []
@@ -990,7 +1006,7 @@ class ShopAuthService:
             for char, escape_with in self.hmac_key_value_escapes:
                 pair = pair.replace(char, escape_with)
             params_to_encode.append(pair)
-        return '&'.join(sorted(params_to_encode))
+        return "&".join(sorted(params_to_encode))
 
     def request_access_token(self, shop_host, grant_code, api_key, api_secret):
         """
@@ -1087,11 +1103,11 @@ class ShopAuthService:
         """Get a random system of `length` characters from given `charset`."""
         return "".join(random.SystemRandom().choice(charset) for _ in range(length))
 
-    def get_embedded_app_url(self, api_key, encoded_host, path='/'):
+    def get_embedded_app_url(self, api_key, encoded_host, path="/"):
         # pad out '=' at end of string so that it is multiple of 4
-        padded_encoded_host = encoded_host + '=' * (4 - len(encoded_host) % 4)
+        padded_encoded_host = encoded_host + "=" * (4 - len(encoded_host) % 4)
         # decode base64 into bytes
         decoded_host_bytes = b64decode(padded_encoded_host)
         # decode back into unicode string
-        decoded_host = decoded_host_bytes.decode('utf-8')
+        decoded_host = decoded_host_bytes.decode("utf-8")
         return f"https://{decoded_host}/apps/{api_key}{path}"

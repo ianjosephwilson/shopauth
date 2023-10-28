@@ -1,7 +1,12 @@
 from dataclasses import dataclass
 
 from pyramid.request import Request
-from pyramid.httpexceptions import HTTPFound, HTTPBadRequest, HTTPForbidden, HTTPUnauthorized
+from pyramid.httpexceptions import (
+    HTTPFound,
+    HTTPBadRequest,
+    HTTPForbidden,
+    HTTPUnauthorized,
+)
 import zope.interface
 
 from ..interfaces import IWebShim
@@ -90,12 +95,12 @@ class PyramidWebShim:
 
     def response_401(self, headers=None, **kwargs):
         if headers:
-            kwargs['headers'] = headers
+            kwargs["headers"] = headers
         return HTTPUnauthorized(**kwargs)
 
     def response_403(self, headers=None, **kwargs):
         if headers:
-            kwargs['headers'] = headers
+            kwargs["headers"] = headers
         return HTTPForbidden(**kwargs)
 
     def redirect_302_url(self, url, with_headers=True):
