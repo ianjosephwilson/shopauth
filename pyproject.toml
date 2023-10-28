@@ -28,11 +28,11 @@ sqlalchemy = [
 [tool.hatch]
 
 [tool.hatch.version]
-path = "shopauth/__version__.py"
+path = "src/shopauth/__version__.py"
 
 [tool.hatch.build.targets.sdist]
 include = [
-    "/shopauth",
+    "/src/shopauth",
 ]
 
 # @TODO
