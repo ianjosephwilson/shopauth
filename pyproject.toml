@@ -1,3 +1,75 @@
 [build-system]
-requires = ["setuptools"]
-build-backend = "setuptools.build_meta"
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "shopauth"
+dynamic = ["version"]
+license = ""
+dependencies = [
+    "pyjwt",
+    "requests",
+    "zope.interface",
+]
+
+[project.optional-dependencies]
+pyramid = [
+    "pyramid",
+]
+sqlalchemy = [
+    "sqlalchemy",
+]
+
+
+[tool.hatch]
+
+[tool.hatch.version]
+path = "shopauth/__version__.py"
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "/shopauth",
+]
+
+# @TODO
+[tool.hatch.envs.testing]
+skip-install=false
+dependencies=[
+]
+template = "testing"
+
+# @TODO
+[tool.hatch.envs.docs]
+skip-install = true
+dependencies = [
+]
+template = "docs"
+
+
+[tool.hatch.envs.docs.scripts]
+
+
+[tool.hatch.envs.default]
+# This is for working natively in the repo.
+skip-install = true
+dependencies = [
+    # Linter
+    "flake8",
+    # Code formatter
+    "black",
+    # Extension to find bugs when running linter.
+    "flake8-bugbear",
+    # Manages pre commits like black/flake8.
+    "pre-commit",
+]
+
+
+[tool.hatch.envs.default.scripts]
+# Re-install precommit hooks if we changed hatch VE.
+precommit-install="pre-commit install"
+# Tag current revision and push tag to origin.
+tag=[
+    "git tag -a v`hatch version` -m Version' '`hatch version`",
+    "git push origin v`hatch version`"
+]
+bump-changelog="python changelogger.py {root}/CHANGELOG.rst v`hatch version`"
