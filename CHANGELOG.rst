@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ++++++++++
 
+
+v0.1.1
+++++++++++
+
   - Convert project to use hatch: remove setup.py, remove setup.cfg, update pyproject.toml.
   - Add pre commit hooks.
   - Add black config.
