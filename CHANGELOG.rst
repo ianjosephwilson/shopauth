@@ -4,6 +4,10 @@ Changelog
 Unreleased
 ++++++++++
 
+
+v0.1.2
+++++++++++
+
   - Add license to pyproject.toml to silence pip error.
 
 v0.1.1
