@@ -9,7 +9,7 @@ target-version = ['py37']
 [project]
 name = "shopauth"
 dynamic = ["version"]
-license = ""
+license = {text = "MIT"}
 dependencies = [
     "pyjwt",
     "requests",
