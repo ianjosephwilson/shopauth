@@ -4,6 +4,7 @@ Changelog
 Unreleased
 ++++++++++
 
+  - Shove every unrecognized webhook response key into a `cruft` dict.
 
 v0.1.2
 ++++++++++
