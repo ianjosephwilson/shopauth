@@ -1,7 +1,11 @@
-from dataclasses import dataclass
+import logging
+from dataclasses import dataclass, field, fields
 import json
 
 import requests
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -16,6 +20,8 @@ class Webhook:
     private_metafield_namespaces: list
     topic: str
     updated_at: str
+    # Whatever we couldn't match.
+    cruft: dict = field(default_factory=dict)
 
 
 class WebhookAPIService:
@@ -66,7 +72,11 @@ class WebhookAPIService:
             data=self.json_api.dumps(payload),
         )
         if res.status_code == 200:
-            return Webhook(**res.json())
+            webhook = self._coerce_into_webhook(res.json())
+            if webhook.cruft:
+                # We save the cruft but don't crash if it exists.
+                logger.warn(f"Unrecognized keys in webhook response: {','.join(webhook.cruft.keys())}")
+            return webhook
         else:
             res.raise_for_status()
 
@@ -120,8 +130,26 @@ class WebhookAPIService:
         )
         if res.status_code == 200:
             d = res.json()
+            webhooks = []
+            for webhook_dict in d["webhooks"]:
+                webhook = self._coerce_into_webhook(webhook_dict)
+                if webhook.cruft:
+                    # We save the cruft but don't crash if it exists.
+                    logger.warn(f"Unrecognized keys in webhook response: {','.join(webhook.cruft.keys())}")
+                webhooks.append(webhook)
             return {
-                "webhooks": [Webhook(**webhook_dict) for webhook_dict in d["webhooks"]]
+                "webhooks": webhooks,
             }
         else:
             res.raise_on_status()
+
+    def _coerce_into_webhook(self, webhook_dict):
+        kwargs = {}
+        field_by_name = {f.name: f for f in fields(Webhook)}
+        cruft = kwargs['cruft'] = {}
+        for k in webhook_dict:
+            if k in field_by_name:
+                kwargs[k] = webhook_dict[k]
+            else:
+                cruft[k] = webhook_dict[k]
+        return Webhook(**kwargs)
